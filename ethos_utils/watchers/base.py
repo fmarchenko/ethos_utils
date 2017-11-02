@@ -14,10 +14,12 @@ class BaseWatcher(object):
     def run(self, *args, **kwargs):
         pass
 
-    async def minestop(self):
-        await self.run_command_shell('/opt/ethos/bin/minestop')
+    @asyncio.coroutine
+    def minestop(self):
+        yield from self.run_command_shell('/opt/ethos/bin/minestop')
 
-    async def run_command_shell(self, command):
+    @asyncio.coroutine
+    def run_command_shell(self, command):
         """Run command in subprocess (shell)
 
         Note:
@@ -25,14 +27,14 @@ class BaseWatcher(object):
             on Windows, which can only be executed in the shell.
         """
         # Create subprocess
-        process = await asyncio.create_subprocess_shell(command,
+        process = yield from asyncio.create_subprocess_shell(command,
                                                         stdout=asyncio.subprocess.PIPE)
 
         # Status
         logger.debug(' '.join(('Started:', command, '(pid = ' + str(process.pid) + ')')))
 
         # Wait for the subprocess to finish
-        stdout, stderr = await process.communicate()
+        stdout, stderr = yield from process.communicate()
 
         # Progress
         if process.returncode == 0:
@@ -46,14 +48,15 @@ class BaseWatcher(object):
         # Return stdout
         return result
 
-    async def run_command(self, *args):
+    @asyncio.coroutine
+    def run_command(self, *args):
         """Run command in subprocess
 
         Example from:
             http://asyncio.readthedocs.io/en/latest/subprocess.html
         """
         # Create subprocess
-        process = await asyncio.create_subprocess_exec(
+        process = yield from asyncio.create_subprocess_exec(
             *args,
             # stdout must a pipe to be accessible as process.stdout
             stdout=asyncio.subprocess.PIPE)
@@ -62,7 +65,7 @@ class BaseWatcher(object):
         print('Started:', args, '(pid = ' + str(process.pid) + ')')
 
         # Wait for the subprocess to finish
-        stdout, stderr = await process.communicate()
+        stdout, stderr = yield from process.communicate()
 
         # Progress
         if process.returncode == 0:

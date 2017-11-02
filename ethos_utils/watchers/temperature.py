@@ -15,11 +15,13 @@ class TemperatureWatcher(BaseWatcher):
         self._min_temp = float(min_temp)
         self._attempt_sleep = int(attempt_sleep)
 
-    async def run(self):
+    @asyncio.coroutine
+    def run(self):
         attempt = 0
         while attempt < 2:
             try:
-                temps = [float(x) for x in str(await self.run_command_shell('/opt/ethos/bin/stats | grep ^temp | cut -d":" -f2')).strip().split(' ')]
+                temps_bytes = yield from self.run_command_shell('/opt/ethos/bin/stats | grep ^temp | cut -d":" -f2')
+                temps = [float(x) for x in str(temps_bytes).strip().split(' ')]
             except ValueError:
                 temps = [self._min_temp]
             avg_temp = sum(temps) / float(len(temps))
@@ -27,7 +29,7 @@ class TemperatureWatcher(BaseWatcher):
             if avg_temp < self._min_temp:
                 if attempt == 0:
                     attempt += 1
-                    await asyncio.sleep(self._attempt_sleep)
+                    yield from asyncio.sleep(self._attempt_sleep)
                     continue
-                await self.minestop()
+                yield from self.minestop()
             attempt += 2

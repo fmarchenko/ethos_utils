@@ -13,7 +13,8 @@ class HashrateWatcher(BaseWatcher):
         self._min_hashrate = float(min_hashrate)
         self._attempt_sleep = int(attempt_sleep)
 
-    async def run(self):
+    @asyncio.coroutine
+    def run(self):
         attempt = 0
         while attempt < 2:
             with open('/var/run/ethos/status.file', 'r') as fin:
@@ -24,15 +25,15 @@ class HashrateWatcher(BaseWatcher):
                 if hashrate < self._min_hashrate:
                     if attempt == 0:
                         attempt += 1
-                        await asyncio.sleep(self._attempt_sleep)
+                        yield from asyncio.sleep(self._attempt_sleep)
                         continue
-                    await self.minestop()
+                    yield from self.minestop()
             except Exception as ex:
                 logger.error(ex)
                 logger.error(status_file)
                 if attempt == 0:
                     attempt += 1
-                    await asyncio.sleep(self._attempt_sleep)
+                    yield from asyncio.sleep(self._attempt_sleep)
                     continue
-                await self.minestop()
+                yield from self.minestop()
             attempt += 2
