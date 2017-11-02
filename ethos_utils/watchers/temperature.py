@@ -5,7 +5,7 @@ import asyncio
 from .base import BaseWatcher
 from . import logger as watchers_logger
 
-logger = watchers_logger.getChild(__name__)
+logger = watchers_logger.getChild(__name__.split('.')[-1])
 
 
 class TemperatureWatcher(BaseWatcher):

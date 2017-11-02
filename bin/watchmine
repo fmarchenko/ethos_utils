@@ -5,14 +5,18 @@ import os
 import asyncio
 import configparser
 
+from ethos_utils import logger as ethos_utils_logger
 from ethos_utils.watchers import *
 
 config = configparser.ConfigParser()
 config.read(['defaults.ini', os.path.expanduser('~/.ethos_utils.ini')])
 config_watchmine = config[os.path.basename(__file__)]
 
+logger = ethos_utils_logger.getChild(os.path.basename(__file__))
+
+
 def main():
-    print('Run watchers for diagnostic all components of a system.')
+    logger.info('Run watchers for diagnostic all components of a system.')
     watchers = map(lambda x: x(**dict(config_watchmine)).run(), base.BaseWatcher.__subclasses__())
     uptime = 0
     with open('/proc/uptime', 'r') as fin:

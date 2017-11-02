@@ -4,7 +4,7 @@ import asyncio
 
 from . import logger as watchers_logger
 
-logger = watchers_logger.getChild(__name__)
+logger = watchers_logger.getChild(__name__.split('.')[-1])
 
 
 class BaseWatcher(object):
@@ -28,7 +28,8 @@ class BaseWatcher(object):
         """
         # Create subprocess
         process = yield from asyncio.create_subprocess_shell(command,
-                                                        stdout=asyncio.subprocess.PIPE)
+                                                             stdout=asyncio.subprocess.PIPE
+                                                             )
 
         # Status
         logger.debug(' '.join(('Started:', command, '(pid = ' + str(process.pid) + ')')))
@@ -56,10 +57,9 @@ class BaseWatcher(object):
             http://asyncio.readthedocs.io/en/latest/subprocess.html
         """
         # Create subprocess
-        process = yield from asyncio.create_subprocess_exec(
-            *args,
-            # stdout must a pipe to be accessible as process.stdout
-            stdout=asyncio.subprocess.PIPE)
+        process = yield from asyncio.create_subprocess_exec(*args,
+                                                            # stdout must a pipe to be accessible as process.stdout
+                                                            stdout=asyncio.subprocess.PIPE)
 
         # Status
         print('Started:', args, '(pid = ' + str(process.pid) + ')')
