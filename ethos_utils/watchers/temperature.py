@@ -20,7 +20,7 @@ class TemperatureWatcher(BaseWatcher):
         attempt = 0
         while attempt < 2:
             try:
-                temps_bytes = yield from self.run_command_shell('/opt/ethos/bin/stats | grep ^temp | cut -d":" -f2')
+                temps_bytes = yield from self.run_command_shell('/opt/ethos/bin/stats | /bin/grep ^temp | /usr/bin/cut -d":" -f2')
                 temps = [float(x) for x in str(temps_bytes).strip().split(' ')]
             except ValueError:
                 temps = [self._min_temp]
