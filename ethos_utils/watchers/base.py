@@ -2,7 +2,7 @@
 
 import asyncio
 
-from . import logger as watchers_logger
+from ethos_utils.watchers import logger as watchers_logger
 
 logger = watchers_logger.getChild(__name__.split('.')[-1])
 

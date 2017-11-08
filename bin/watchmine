@@ -4,6 +4,7 @@
 import os
 import asyncio
 import configparser
+import signal
 
 from ethos_utils import logger as ethos_utils_logger
 from ethos_utils.watchers import *
@@ -15,18 +16,29 @@ config_watchmine = config[os.path.basename(__file__)]
 logger = ethos_utils_logger.getChild(os.path.basename(__file__))
 
 
-def main():
-    logger.info('Run watchers for diagnostic all components of a system.')
-    watchers = map(lambda x: x(**dict(config_watchmine)).run(), base.BaseWatcher.__subclasses__())
-    uptime = 0
-    with open('/proc/uptime', 'r') as fin:
-        uptime = float(fin.read().split(' ')[0]) / 60.0
+def handler(loop):
+    loop.remove_signal_handler(signal.SIGTERM)
+    loop.stop()
 
-    if uptime > config_watchmine.getfloat('start_timeout'):
-        loop = asyncio.get_event_loop()
-        tasks = asyncio.gather(*watchers)
-        loop.run_until_complete(tasks)
-        loop.close()
+
+@asyncio.coroutine
+def main(loop):
+    logger.info('Run watchers for diagnostic all components of a system.')
+    uptime = 0
+    while True:
+        watchers = map(lambda x: x(**dict(config_watchmine)).run(), base.BaseWatcher.__subclasses__())
+        with open('/proc/uptime', 'r') as fin:
+            uptime = float(fin.read().split(' ')[0]) / 60.0
+
+        if uptime > config_watchmine.getfloat('start_timeout', 1):
+            yield from asyncio.wait(watchers)
+        yield from asyncio.sleep(60 * config_watchmine.getfloat('task_period_timeout', 5))
 
 if __name__ == '__main__':
-    main()
+    loop = asyncio.get_event_loop()
+    loop.add_signal_handler(signal.SIGTERM, handler, loop)
+    loop.create_task(main(loop))
+    try:
+        loop.run_forever()
+    finally:
+        loop.close()
