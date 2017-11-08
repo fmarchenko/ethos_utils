@@ -17,10 +17,9 @@ class HashrateWatcher(BaseWatcher):
     def run(self):
         attempt = 0
         while attempt < 2:
-            with open('/var/run/ethos/status.file', 'r') as fin:
-                status_file = fin.read().strip()
             try:
-                hashrate = float(status_file.split(':')[0].split(' ')[0].strip())
+                hashrate = yield from self.run_command_shell('/opt/ethos/bin/stats | /bin/grep ^hash: | /usr/bin/cut -d":" -f2')
+                hashrate = float(hashrate.strip())
                 logger.info('Hashrate watcher: hash - {}, minimal - {}'.format(hashrate, self._min_hashrate))
                 if hashrate < self._min_hashrate:
                     if attempt == 0:
@@ -30,7 +29,6 @@ class HashrateWatcher(BaseWatcher):
                     yield from self.minestop()
             except Exception as ex:
                 logger.error(ex)
-                logger.error(status_file)
                 if attempt == 0:
                     attempt += 1
                     yield from asyncio.sleep(self._attempt_sleep)
