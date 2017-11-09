@@ -18,10 +18,12 @@ class HashrateWatcher(BaseWatcher):
         attempt = 0
         while attempt < 2:
             try:
-                hashrate = yield from self.run_command_shell('/opt/ethos/bin/stats | /bin/grep ^hash: | /usr/bin/cut -d":" -f2')
-                hashrate = float(hashrate.strip())
+                self.stats = yield from self.run_command_shell('/opt/ethos/bin/stats')
+                hashrate = float(self.stats.split('hash:')[1].split('\n')[0].strip())
                 logger.info('Hashrate watcher: hash - {}, minimal - {}'.format(hashrate, self._min_hashrate))
                 if hashrate < self._min_hashrate:
+                    if self.gpu_crashed():
+                        yield from self.run_command_shell('/opt/ethos/bin/r')
                     if attempt == 0:
                         attempt += 1
                         yield from asyncio.sleep(self._attempt_sleep)
@@ -35,3 +37,8 @@ class HashrateWatcher(BaseWatcher):
                     continue
                 yield from self.minestop()
             attempt += 2
+
+    def gpu_crashed(self):
+        status = self.stats.split('status:')[1].split('\n')[0]
+        logger.info('Hashrate wather: status {}'.format(status))
+        return 'reboot required' in status
