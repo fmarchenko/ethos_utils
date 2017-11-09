@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import re
 
 from ethos_utils.watchers.base import BaseWatcher
 from ethos_utils.watchers import logger as watchers_logger
@@ -19,7 +20,7 @@ class HashrateWatcher(BaseWatcher):
         while attempt < 2:
             try:
                 self.stats = yield from self.run_command_shell('/opt/ethos/bin/stats')
-                hashrate = float(self.stats.split('hash:')[1].split('\n')[0].strip())
+                hashrate = float(re.split(r'^hash:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip())
                 logger.info('Hashrate watcher: hash - {}, minimal - {}'.format(hashrate, self._min_hashrate))
                 if hashrate < self._min_hashrate:
                     if self.gpu_crashed():
