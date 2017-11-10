@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import re
 
 from ethos_utils.watchers import logger as watchers_logger
 
@@ -11,11 +12,28 @@ class BaseWatcher(object):
     def __init__(self, *args, **kwargs):
         super(BaseWatcher, self).__init__()
 
+    @asyncio.coroutine
     def run(self, *args, **kwargs):
-        pass
+        self.stats = yield from self.run_command_shell('/opt/ethos/bin/stats')
+        self.status = re.split(r'^status:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip()
+        logger.info('Status: {}'.format(self.status))
+
+    def gpu_crashed(self):
+        return 'reboot required' in self.status
+
+    def many_autoreboots(self):
+        return 'too many autoreboots' in self.status
 
     @asyncio.coroutine
     def minestop(self):
+        if self.many_autoreboots():
+            logger.info('Reset thermal-related throttling back to normal')
+            yield from self.run_command_shell('/opt/ethos/bin/clear-thermals')
+            return
+        elif self.gpu_crashed():
+            logger.info('Issue a regular reboot system')
+            yield from self.run_command_shell('/opt/ethos/bin/r')
+            return
         yield from self.run_command_shell('/opt/ethos/bin/minestop')
 
     @asyncio.coroutine

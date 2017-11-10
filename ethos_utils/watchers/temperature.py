@@ -16,7 +16,8 @@ class TemperatureWatcher(BaseWatcher):
         self._attempt_sleep = int(attempt_sleep)
 
     @asyncio.coroutine
-    def run(self):
+    def run(self, *args, **kwargs):
+        yield from super(TemperatureWatcher, self).run(*args, **kwargs)
         attempt = 0
         while attempt < 2:
             try:
@@ -25,7 +26,7 @@ class TemperatureWatcher(BaseWatcher):
             except ValueError:
                 temps = [self._min_temp]
             avg_temp = sum(temps) / float(len(temps))
-            logger.info('Temperature watcher: average - {}, minimal - {}'.format(avg_temp, self._min_temp))
+            logger.info('average - {}, minimal - {}'.format(avg_temp, self._min_temp))
             if avg_temp < self._min_temp:
                 if attempt == 0:
                     attempt += 1
