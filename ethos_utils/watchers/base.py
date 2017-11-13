@@ -9,6 +9,9 @@ logger = watchers_logger.getChild(__name__.split('.')[-1])
 
 
 class BaseWatcher(object):
+    _attempt = 0
+    _attempt_sleep = 60
+
     def __init__(self, *args, **kwargs):
         super(BaseWatcher, self).__init__()
 
@@ -18,11 +21,30 @@ class BaseWatcher(object):
         self.status = re.split(r'^status:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip()
         logger.info('Status: {}'.format(self.status))
 
+        while self._attempt < 2:
+            try:
+                if self.need_reboot():
+                    if self._attempt < 1:
+                        self._attempt += 1
+                        yield from asyncio.sleep(self._attempt_sleep)
+                        continue
+                    logger.info('run minestop')
+                    yield from self.minestop()
+                self._attempt = 2
+            except Exception as ex:
+                logger.error(ex)
+                yield from asyncio.sleep(self._attempt_sleep)
+                continue
+        self._attempt = 0
+
     def gpu_crashed(self):
         return 'reboot required' in self.status
 
     def many_autoreboots(self):
         return 'too many autoreboots' in self.status
+
+    def need_reboot(self):
+        pass
 
     @asyncio.coroutine
     def minestop(self):

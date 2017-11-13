@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+import re
+from statistics import mean
 
 from ethos_utils.watchers.base import BaseWatcher
 from ethos_utils.watchers import logger as watchers_logger
@@ -15,22 +17,8 @@ class TemperatureWatcher(BaseWatcher):
         self._min_temp = float(min_temp)
         self._attempt_sleep = int(attempt_sleep)
 
-    @asyncio.coroutine
-    def run(self, *args, **kwargs):
-        yield from super(TemperatureWatcher, self).run(*args, **kwargs)
-        attempt = 0
-        while attempt < 2:
-            try:
-                temps_bytes = yield from self.run_command_shell('/opt/ethos/bin/stats | /bin/grep ^temp | /usr/bin/cut -d":" -f2')
-                temps = [float(x) for x in str(temps_bytes).strip().split(' ')]
-            except ValueError:
-                temps = [self._min_temp]
-            avg_temp = sum(temps) / float(len(temps))
-            logger.info('average - {}, minimal - {}'.format(avg_temp, self._min_temp))
-            if avg_temp < self._min_temp:
-                if attempt == 0:
-                    attempt += 1
-                    yield from asyncio.sleep(self._attempt_sleep)
-                    continue
-                yield from self.minestop()
-            attempt += 2
+    def need_reboot(self):
+        temps_bytes = re.split(r'^temp:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip()
+        avg_temp = mean([float(x) for x in str(temps_bytes).strip().split(' ')])
+        logger.info('average - {}, minimal - {}'.format(avg_temp, self._min_temp))
+        return avg_temp < self._min_temp

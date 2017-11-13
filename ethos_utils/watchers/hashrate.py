@@ -14,27 +14,7 @@ class HashrateWatcher(BaseWatcher):
         self._min_hashrate = float(min_hashrate)
         self._attempt_sleep = int(attempt_sleep)
 
-    @asyncio.coroutine
-    def run(self, *args, **kwargs):
-        yield from super(HashrateWatcher, self).run(*args, **kwargs)
-        attempt = 0
-        while attempt < 2:
-            try:
-                hashrate = float(re.split(r'^hash:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip())
-                logger.info('hash - {}, minimal - {}'.format(hashrate, self._min_hashrate))
-                if hashrate < self._min_hashrate:
-                    if attempt == 0:
-                        attempt += 1
-                        yield from asyncio.sleep(self._attempt_sleep)
-                        continue
-                    logger.info('run minestop')
-                    yield from self.minestop()
-            except Exception as ex:
-                logger.error(ex)
-                if attempt == 0:
-                    attempt += 1
-                    yield from asyncio.sleep(self._attempt_sleep)
-                    continue
-                logger.info('run minestop')
-                yield from self.minestop()
-            attempt += 2
+    def need_reboot(self):
+        hashrate = float(re.split(r'^hash:', self.stats, flags=re.MULTILINE)[1].split('\n')[0].strip())
+        logger.info('hash - {}, minimal - {}'.format(hashrate, self._min_hashrate))
+        return hashrate < self._min_hashrate
